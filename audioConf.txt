@@ -1,0 +1,63 @@
+
+===============================
+===============================
+Prepare system for packages
+apt-get install build-essential checkinstall
+===============================
+===============================
+
+
+apt-get install python-pip python-dev curl libssl-dev libcurl4-openssl-dev libjpeg-dev libx264-142 libasound2-dev
+apt-get install libmp3lame-dev libvorbis-dev libtheora-dev libspeex-dev yasm pkg-config libfaac-dev libopenjpeg-dev libx264-dev libfdk-aac-dev libfdk-aac1 libssh-dev libwebp-dev gnutls-bin libghc-gnutls-dev
+wget http://ffmpeg.org/releases/ffmpeg-3.2.tar.xz
+
+
+
+./configure  --enable-cross-compile  --arch=armel --target-os=linux  --enable-gpl --enable-postproc --enable-swscale --enable-avfilter --enable-libmp3lame --enable-libvorbis --enable-libtheora --enable-libx264 --enable-libspeex --enable-shared --enable-pthreads --enable-libopenjpeg --enable-libfdk-aac --enable-nonfree --enable-openssl --enable-gnutls --enable-libwebp  --extra-libs=-lasound
+make -j 4
+
+
+sudo make install
+
+/sbin/ldconfig
+
+
+
+ffmpeg -threads 4 -f alsa -i hw:1 -b:v 64k -bufsize 64k  -f mp3 icecast://source:2work4fun@192.168.1.78:8000/peyote
+ffmpeg -threads 4 -f alsa -i hw:1 -c:a libmp3lame -b:a 320k -legacy_icecast 1 -content_type audio/mpeg -ice_name "Welcome" -b:v 8k -bufsize 8k  -f mp3 icecast://source:2work4fun@192.168.1.78:8000/peyote
+
+
+ffmpeg -threads 4 -f alsa -i hw:1 -vn -codec:a libmp3lame -b:a 128k -ar 44100 -f mp3 icecast://source:2work4fun@192.168.1.78:8000/peyote
+
+ffmpeg -f alsa -i hw:1 -vn -codec:a libmp3lame -b:a 256k -ab 64000 -ar 44100 -threads 8 -f mp3 icecast://source:2work4fun@192.168.1.78:8000/peyote
+
+ffmpeg -f alsa -i hw:1 -vn -codec:a libmp3lame -ab 256000 -ar 48000 -threads 8 -f mp3 icecast://source:2work4fun@192.168.1.78:8000/peyote2
+
+ffmpeg -f alsa -i hw:1 -vn -codec:a libmp3lame -ab 128000 -ar 48000 -threads 8 -f mp3 icecast://source:2work4fun@server.x-io.in:8000/peyote
+
+
+
+
+
+===============================
+===============================
+Prepare Audio
+===============================
+===============================
+Edit /etc/asound.conf
+
+pcm.!default {
+    type hw
+    card 1
+}
+
+ctl.!default {
+    type hw
+    card 1
+}
+
+
+
+The DB has: myid = UUID value to identify
+myLocalPass = My Password for encryption
+mySecret = Secret key
