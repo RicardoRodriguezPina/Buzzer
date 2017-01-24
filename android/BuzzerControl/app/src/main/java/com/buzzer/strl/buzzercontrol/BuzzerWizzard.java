@@ -33,6 +33,8 @@ import com.tech.freak.wizardpager.ui.PageFragmentCallbacks;
 import com.tech.freak.wizardpager.ui.ReviewFragment;
 import com.tech.freak.wizardpager.ui.StepPagerStrip;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -116,7 +118,7 @@ public class BuzzerWizzard extends ActionBarActivity implements PageFragmentCall
                     }
                     UUID uniqueKey = UUID.randomUUID();
                     String uid=uniqueKey.toString();
-                    String code="None";
+                    String code="";
                     String pass ="None";
                     String wifi ="None";
                     String buzzpass ="None";
@@ -143,7 +145,7 @@ public class BuzzerWizzard extends ActionBarActivity implements PageFragmentCall
 
                     try {
 
-                        URL url = new URL("http://10.1.1.1/"+wifi+"/"+pass+"/"+uid+"/"+buzzpass);
+                        URL url = new URL("http://10.0.0.1/reg/"+wifi+"/"+pass+"/"+uid+"/"+buzzpass);
                         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
                         String line;
                         while ((line = reader.readLine()) != null) {
@@ -153,12 +155,13 @@ public class BuzzerWizzard extends ActionBarActivity implements PageFragmentCall
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    Log.d("Data", code);
 
                     SharedPreferences pref = getSharedPreferences("BUZZER_PREF", Context.MODE_PRIVATE);
                     pref.edit().putString("CODE", code).commit();
                     pref.edit().putString("UUID", uid).commit();
                     pref.edit().putString("PASS", buzzpass).commit();
-
+                    EventBus.getDefault().post(new ToClientEvent("INT:NONE"));
                     finish();
                     /*Here is the End.*/
                 } else {

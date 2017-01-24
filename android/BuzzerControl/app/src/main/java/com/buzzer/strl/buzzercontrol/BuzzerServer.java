@@ -69,7 +69,7 @@ public class BuzzerServer extends Service {
                     public void onTextMessage(WebSocket websocket, String message) throws Exception {
                         Log.i(TAG, message);
 
-                        EventBus.getDefault().post(new ToClientEvent(message));
+                        EventBus.getDefault().post(new ToClientEvent("EXT:"+message));
 //                            Thread.sleep(80000);
 //                            ws.sendText(message);
                     }

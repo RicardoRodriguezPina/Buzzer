@@ -41,7 +41,9 @@
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:id="@+id/line1"
+            android:visibility="gone">
 
             <ImageButton
                 android:layout_width="wrap_content"
@@ -63,7 +65,9 @@
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:id="@+id/line2"
+            android:visibility="gone">
 
             <ImageButton
                 android:layout_width="wrap_content"
@@ -80,6 +84,38 @@
                 android:textSize="24sp"
                 android:layout_weight="0.50"
                 android:gravity="center_vertical" />
+
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0.5"
+            android:id="@+id/line3">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:srcCompat="@drawable/back"
+                android:id="@+id/imageView2"
+                android:layout_weight="1" />
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0.5"
+            android:id="@+id/line4"
+            android:visibility="gone">
+
+            <ProgressBar
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="160dp"
+                android:id="@+id/progressBar2"
+                android:layout_weight="1"
+                android:indeterminate="true" />
         </LinearLayout>
     </LinearLayout>
 

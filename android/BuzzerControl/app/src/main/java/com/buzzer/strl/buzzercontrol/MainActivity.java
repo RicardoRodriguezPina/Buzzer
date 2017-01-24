@@ -13,11 +13,14 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.support.transition.Visibility;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Base64;
@@ -27,6 +30,7 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.github.clans.fab.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -49,10 +53,16 @@ import org.cryptonode.jncryptor.AES256JNCryptor;
 import org.cryptonode.jncryptor.CryptorException;
 import org.cryptonode.jncryptor.JNCryptor;
 import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.EventBusException;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,12 +78,81 @@ public class MainActivity extends AppCompatActivity {
     String code="None";
     String uid="None";
     String password="None";
+    LinearLayout line1 ;
+    LinearLayout line2 ;
+    LinearLayout line3 ;
+    LinearLayout line4 ;
     final int SAMPLE_RATE = 44100; // The sampling rate
     boolean mShouldContinue_record=false; // Indicates if recording / playback should stop
     boolean mShouldContinue_play = false;
     StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
     final int RC_CAMERA_AND_WIFI = 666;
     private View mLayout;
+    void updateVals()
+    {
+        SharedPreferences pref = this.getSharedPreferences("BUZZER_PREF", Context.MODE_PRIVATE);
+
+
+        code=pref.getString("CODE","None");
+        uid=pref.getString("UUID", "None");
+        password=pref.getString("PASS", "None");
+        Log.d("Value1",code);
+        Log.d("Value2",uid);
+        Log.d("Value3",password);
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                try{
+                    if(code.equalsIgnoreCase("None"))
+                    {
+                        line1.setVisibility(View.GONE);
+                        line2.setVisibility(View.GONE);
+                        line3.setVisibility(View.VISIBLE);
+                        line4.setVisibility(View.GONE);
+                    }else
+                    {
+                        line1.setVisibility(View.VISIBLE);
+                        line2.setVisibility(View.VISIBLE);
+                        line3.setVisibility(View.GONE);
+                        line4.setVisibility(View.GONE);
+                    }
+
+                }
+                catch(Exception e){}
+            }
+        });
+
+        Intent myIntent = new Intent(this, BuzzerServer.class);
+        this.stopService(myIntent);
+        this.startService(myIntent);
+
+    }
+    void showHide()
+    {
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                try{
+                    line1.setVisibility(View.GONE);
+                    line2.setVisibility(View.GONE);
+                    line4.setVisibility(View.VISIBLE);
+                    line3.setVisibility(View.GONE);
+                }
+                catch(Exception e){}
+            }
+        });
+
+    }
+    void showErrorMsg(String msg)
+    {
+        final String msg2=msg;
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                try{
+                    Toast.makeText(mySelft, msg2, Toast.LENGTH_SHORT).show();
+                }
+                catch(Exception e){}
+            }
+        });
+    }
     private void startScanner()
     {
         Intent intent = new Intent(mySelft, ShareCode.class);
@@ -82,28 +161,71 @@ public class MainActivity extends AppCompatActivity {
     }
     private void startWizzard()
     {
-        WifiConfiguration conf = new WifiConfiguration();
-        conf.SSID = "\"BUZZERAPP\"";
-        conf.wepKeys[0] = "\"2work4fun!\"";
-        conf.wepTxKeyIndex = 0;
-        conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
-        conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
-        WifiManager wifiManager = (WifiManager)mySelft.getSystemService(Context.WIFI_SERVICE);
-        wifiManager.addNetwork(conf);
-        List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
-        for( WifiConfiguration i : list ) {
-            if(i.SSID != null && i.SSID.equals( "\"BUZZERAPP\"")) {
-                wifiManager.disconnect();
-                wifiManager.enableNetwork(i.networkId, true);
-                wifiManager.reconnect();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                showHide();
 
-                break;
+                WifiConfiguration conf = new WifiConfiguration();
+                conf.SSID = "\"BUZZERAPP\"";
+                conf.wepKeys[0] = "\"2work4fun!\"";
+                conf.wepTxKeyIndex = 0;
+                conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+                conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
+                WifiManager wifiManager = (WifiManager)mySelft.getSystemService(Context.WIFI_SERVICE);
+                wifiManager.addNetwork(conf);
+                List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
+                for( WifiConfiguration i : list ) {
+                    if(i.SSID != null && i.SSID.equals( "\"BUZZERAPP\"")) {
+                        wifiManager.disconnect();
+                        wifiManager.enableNetwork(i.networkId, true);
+                        wifiManager.reconnect();
+
+                        break;
+                    }
+                }
+                try {
+                    Thread.sleep(30000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                Log.d("Connection", "Start Con !");
+                ConnectivityManager cm = (ConnectivityManager) mySelft.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo netInfo = cm.getActiveNetworkInfo();
+                if (netInfo != null && netInfo.isConnected()) {
+                    try {
+                        URL url = new URL("http://10.0.0.1/");   // Change to "http://google.com" for www  test.
+                        HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
+                        urlc.setConnectTimeout(5 * 1000);          // 10 s.
+                        urlc.connect();
+                        if (urlc.getResponseCode() == 200) {        // 200 = "OK" code (http connection is fine).
+                            Log.d("Connection", "Success !");
+                            Intent intent = new Intent(mySelft, BuzzerWizzard.class);
+
+                            startActivity(intent);
+                        } else {
+                            showErrorMsg("Please Connect to BUZZR SSID");
+                            updateVals();
+                        }
+                    } catch (MalformedURLException e1) {
+                        showErrorMsg("Please Connect to BUZZR SSID");
+                        updateVals();
+                    } catch (IOException e) {
+                        showErrorMsg("Please Connect to BUZZR SSID");
+                        updateVals();
+                    }
+                }else
+                {
+                    showErrorMsg("Please Connect to BUZZR SSID");
+                    updateVals();
+                }
+
+
             }
-        }
+        }).start();
 
-        Intent intent = new Intent(mySelft, BuzzerWizzard.class);
 
-        startActivity(intent);
     }
     public void startQRCode()
     {
@@ -130,21 +252,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        SharedPreferences pref = this.getSharedPreferences("BUZZER_PREF", Context.MODE_PRIVATE);
 
-        code=pref.getString("CODE","None");
-        Log.d("BUZZER_PREF",code);
-//        pref.edit().putString("CODE", "BIG-CODE").commit();
-//        code=pref.getString("CODE","None");
-//        Log.d("BUZZER_PREF",code);
-//        UUID uniqueKey = UUID.randomUUID();
-//        String uid=uniqueKey.toString();
-//        Log.d("BUZZER_UUID",uid);
         mySelft =this;
         StrictMode.setThreadPolicy(policy);
         mLayout = findViewById(R.id.mainid);
 
-       FloatingActionButton new_home = (FloatingActionButton) findViewById(R.id.new_home);
+        FloatingActionButton new_home = (FloatingActionButton) findViewById(R.id.new_home);
         new_home.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -168,7 +281,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         TextView tv = (TextView) findViewById(R.id.sample_text);
-
+        line1 = (LinearLayout)findViewById(R.id.line1);
+        line2 = (LinearLayout)findViewById(R.id.line2);
+        line3 = (LinearLayout)findViewById(R.id.line3);
+        line4 = (LinearLayout)findViewById(R.id.line4);
 
 
         if(!isMyServiceRunning(BuzzerServer.class))
@@ -176,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
             Intent myIntent = new Intent(this, BuzzerServer.class);
             this.startService(myIntent);
         }
-
+        updateVals();
         ImageButton btnPlay = (ImageButton)findViewById(R.id.btnPlay);
         btnPlay.setOnTouchListener(new View.OnTouchListener() {
 
@@ -188,12 +304,16 @@ public class MainActivity extends AppCompatActivity {
                     view.invalidate();
 
                     mShouldContinue_record=true;
+                    String message  = encryptIt("Event:SPEAKER:PLAY:"+uid);
+                    EventBus.getDefault().post(new ToServerEvent(message));
                     recordAudio();
                     return true;
                 } else if(motionEvent.getAction() == MotionEvent.ACTION_UP){
                     Log.d("Buzzr"," is not press");
                     view.getBackground().clearColorFilter();
                     view.invalidate();
+                    String message  = encryptIt("Event:SPEAKER:STOP:NONE");
+                    EventBus.getDefault().post(new ToServerEvent(message));
                     mShouldContinue_record=false;
                     return true;
                 }
@@ -211,27 +331,16 @@ public class MainActivity extends AppCompatActivity {
                     view.getBackground().setColorFilter(0xe08C8C8C, PorterDuff.Mode.SRC_ATOP);
                     view.invalidate();
 
-                    String enc  = "Event:OPENDOOR:NONE";
-                    JNCryptor cryptor = new AES256JNCryptor();
-
-
-
-                    byte[] bytedata = enc.getBytes();
-                    String message="";
-                    try {
-                        byte[] encryptData = cryptor.encryptData(bytedata,password.toCharArray());
-                        message =  Base64.encodeToString(encryptData,Base64.DEFAULT) ;
-                    } catch (CryptorException e) {
-                        e.printStackTrace();
-                    }
-
-
+                    String message  = encryptIt("Event:DOOR:OPEN");
                     EventBus.getDefault().post(new ToServerEvent(message));
                     return true;
                 } else if(motionEvent.getAction() == MotionEvent.ACTION_UP){
                     Log.d("Buzzr"," opendoor is not press");
                     view.getBackground().clearColorFilter();
                     view.invalidate();
+                    String message  = encryptIt("Event:DOOR:CLOSE");
+                    EventBus.getDefault().post(new ToServerEvent(message));
+
                     return true;
                 }
                 return false;
@@ -243,7 +352,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private String encryptIt(String enc)
+    {
+        JNCryptor cryptor = new AES256JNCryptor();
 
+
+
+        byte[] bytedata = enc.getBytes();
+        String message="";
+        try {
+            byte[] encryptData = cryptor.encryptData(bytedata,password.toCharArray());
+            message =  Base64.encodeToString(encryptData,Base64.DEFAULT) ;
+        } catch (CryptorException e) {
+            e.printStackTrace();
+        }
+        return message;
+    }
     private void methodRequiresTwoPermission() {
         int MyVersion = Build.VERSION.SDK_INT;
         if (MyVersion > Build.VERSION_CODES.LOLLIPOP_MR1) {
@@ -271,11 +395,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        EventBus.getDefault().register(this);
+        try {
+            EventBus.getDefault().register(this);
+        }catch (EventBusException e){}
     }
     @Override
     public void onStop() {
-        EventBus.getDefault().unregister(this);
+        //EventBus.getDefault().unregister(this);
         super.onStop();
     }
     @Override
@@ -303,11 +429,61 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(ToClientEvent event) {
         //Toast.makeText(mySelft, event.message, Toast.LENGTH_SHORT).show();
+        String msg = event.message;
+        Log.d("Message",msg);
+        Log.d("Value", Integer.toString(msg.indexOf("INT:")) );
+        if(msg.indexOf("INT:")==0)
+        {
+            updateVals();
+        }
+        if(msg.indexOf("EXT:")==0)
+        {
+            try {
+                String[] decr = decrypTed(msg.replace("EXT:", "")).split(":");
+                if(decr[0]=="RING")
+                {
+                    playDor();
+                }
+                if(decr[0]=="PLAY")
+                {
+                    if(decr[1]=="START")
+                    {
+                        playAudio();
+                    }
+                    if(decr[1]=="STOP")
+                    {
+                        wsound.disconnect();
+                        m_track1.stop();
+                        m_track1.flush();
+                        m_track1=null;
+                    }
+                }
+            }catch (Exception e)
+            {}
+        }
 
-        playDor();
+       //
     }
+
+    private String decrypTed(String enc) {
+        String message="";
+        JNCryptor cryptor = new AES256JNCryptor();
+        byte[] decoded = Base64.decode(enc, Base64.DEFAULT);
+
+        try {
+            byte[] decryptData = cryptor.decryptData(decoded, password.toCharArray());
+            message= new String(decryptData);
+
+
+        } catch (CryptorException e) {
+            e.printStackTrace();
+        }
+        return  message;
+    }
+
+    WebSocket wsound;
     void playAudio() {
-        WebSocket ws;
+
         m_track1 = new AudioTrack(
                 AudioManager.STREAM_MUSIC,
                 SAMPLE_RATE1,
@@ -320,8 +496,8 @@ public class MainActivity extends AppCompatActivity {
         m_track1.play();
 
         try {
-            ws = new WebSocketFactory().createSocket("ws://104.198.10.152/stream/"+code+"/inof");
-            ws.addListener(new WebSocketAdapter() {
+            wsound = new WebSocketFactory().createSocket("ws://104.198.10.152/stream/"+code+"/inof");
+            wsound.addListener(new WebSocketAdapter() {
                 @Override
                 public void onTextMessage(WebSocket websocket, String message) throws Exception {
 
@@ -343,9 +519,8 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             });
-            ws.connect();
+            wsound.connect();
 
-            ws.sendText("Hola Peyote");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (WebSocketException e) {
@@ -384,12 +559,27 @@ public class MainActivity extends AppCompatActivity {
                 Log.v("Buzzr", "Start recording");
 
                 long shortsRead = 0;
+                WebSocket ws=null;
+                try {
+                    ws = new WebSocketFactory().createSocket("ws://104.198.10.152/stream/"+code+"/io");
+                    ws.connect();
+
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (WebSocketException e) {
+                    e.printStackTrace();
+                }
+
                 while (mShouldContinue_record) {
                     int numberOfShort = record.read(audioBuffer, 0, audioBuffer.length);
                     shortsRead += numberOfShort;
                     String dd=  Base64.encodeToString(audioBuffer,Base64.DEFAULT) ;
                     Log.d("Buzzr", dd);
+
+                    ws.sendText(dd);
                 }
+                ws.disconnect();
 
                 record.stop();
                 record.release();
@@ -414,14 +604,14 @@ public class MainActivity extends AppCompatActivity {
                 pref.edit().putString("CODE", code).commit();
                 pref.edit().putString("UUID", uid).commit();
                 pref.edit().putString("PASS", buzzpass).commit();
+                updateVals();
 
-                Intent myIntent = new Intent(this, BuzzerServer.class);
-                this.stopService(myIntent);
-                this.startService(myIntent);
             }
             if (resultCode == Activity.RESULT_CANCELED) {
                 //Write your code if there's no result
             }
         }
     }
+
+
 }
